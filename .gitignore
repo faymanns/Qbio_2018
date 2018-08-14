@@ -102,3 +102,10 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# output
+**.avi
+frames
+
+# input
+**.tif
