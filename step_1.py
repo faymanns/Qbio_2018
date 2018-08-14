@@ -1,8 +1,5 @@
 import os.path
-<<<<<<< HEAD
 import shutil
-=======
->>>>>>> ee5ebc458aa998cbd8146fc0df0b1b34b7925311
 from subprocess import call
 import numpy as np
 import cv2
@@ -43,11 +40,7 @@ def hysteresis_filter(seq, n=5):
     seq[start_of_state:]=state
     return seq
 
-<<<<<<< HEAD
 path = os.path.expanduser(os.path.expandvars('sample_input.tif'))
-=======
-path = os.path.expanduser(os.path.expandvars('~/Desktop/sample_input.tif'))
->>>>>>> ee5ebc458aa998cbd8146fc0df0b1b34b7925311
 full_video = io.imread(path)
 
 average_image = np.zeros_like(full_video[0])
@@ -74,7 +67,6 @@ for i,b in enumerate(bool_rows):
         lanes.append(i)
         new_lane = True
 print(lanes)
-<<<<<<< HEAD
 if not os.path.exists('frames'):
     os.makedirs('frames')
 for i in range(0, len(lanes)-1, 2):
@@ -84,14 +76,3 @@ for i in range(0, len(lanes)-1, 2):
         io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
     call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', f'lane_{lane_id}.avi'])
 shutil.rmtree('frames')
-=======
-for i in range(0, len(lanes)-1, 2):
-    lane_id = int(i/2)
-    #io.imsave(f'lane{lane_id}.tif', full_video[:, lanes[i]:lanes[i+1], :])
-    if not os.path.exists('frames'):
-            os.makedirs('frames')
-    for j,img in enumerate(full_video[:, lanes[i]:lanes[i+1], :]):
-        io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
-    call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', f'lane_{lane_id}.avi'])
-    call(['rm', '-r', 'frames'])
->>>>>>> ee5ebc458aa998cbd8146fc0df0b1b34b7925311
