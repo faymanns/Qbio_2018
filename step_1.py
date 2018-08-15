@@ -4,6 +4,7 @@ from subprocess import call
 import numpy as np
 import cv2
 from skimage import io
+import json
 
 def hysteresis_filter(seq, n=5):
     """
@@ -39,6 +40,18 @@ def hysteresis_filter(seq, n=5):
             memory = 0
     seq[start_of_state:]=state
     return seq
+
+def laser_position(path, start, stop):
+    image = io.imread(path)
+    val, thresh = cv2.threshold(image, 0, np.iinfo(image.dtype).max, cv2.THRESH_OTSU)
+    
+    results = np.zeros(len(image))
+    
+    for i, row in enumerate(thresh):
+        indices = np.nonzero(row)[0]
+        results[i] = round((indices[-1] - indices[0]) / 2 + indices[0])
+    
+    return int(round(np.mean(results[start:stop])))
 
 path = os.path.expanduser(os.path.expandvars('sample_input.tif'))
 full_video = io.imread(path)
@@ -78,9 +91,15 @@ for i in range(0, len(lanes)-1, 2):
 shutil.rmtree('frames')
 
 
-wall_col_num=[]
-for i in [0,2,4,6]:
-    mid_col_num=int(np.mean([lanes[i],lanes[i+1]]))
-    slot_col_num=np.argwhere(average_image[mid_col_num]>0)
-    wall_col_num.append(int(slot_col_num[0]-1))
-    wall_col_num.append(int(slot_col_num[-1]+1))
+wall_col_num = []
+laser_col_num = []
+position = {'slot_0': {}, 'slot_1': {}, 'slot_2': {}, 'slot_3': {}}
+for i in [0, 1, 2, 3]:
+    mid_col_num = int(np.mean([lanes[i * 2], lanes[i * 2 + 1]]))
+    slot_col_num = np.argwhere(average_image[mid_col_num]>0)
+    position[f'slot_{i}']['left_wall'] = int(slot_col_num[0]-1)
+    position[f'slot_{i}']['right_wall'] = int(slot_col_num[-1]+1)
+    position[f'slot_{i}']['laser'] = laser_position('laserposition_paper.jpg', lanes[i * 2], lanes[i * 2 + 1])
+
+with open('position.json', 'w') as fp:
+    json.dump(position, fp, sort_keys=True, indent=4)
