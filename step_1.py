@@ -129,6 +129,7 @@ def main(path_tif, path_laser_position, output_dir):
     wall_col_num = []
     laser_col_num = []
     position = {'slot_0': {}, 'slot_1': {}, 'slot_2': {}, 'slot_3': {}}
+    path_laser_position = os.path.expanduser(os.path.expandvars(path_laser_position))
     for i in [0, 1, 2, 3]:
         mid_col_num = int(np.mean([lanes[i * 2], lanes[i * 2 + 1]]))
         slot_col_num = np.argwhere(average_image[mid_col_num]>0)
