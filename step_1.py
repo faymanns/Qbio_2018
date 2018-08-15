@@ -76,3 +76,11 @@ for i in range(0, len(lanes)-1, 2):
         io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
     call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', f'lane_{lane_id}.avi'])
 shutil.rmtree('frames')
+
+
+wall_col_num=[]
+for i in [0,2,4,6]:
+    mid_col_num=int(np.mean([lanes[i],lanes[i+1]]))
+    slot_col_num=np.argwhere(average_image[mid_col_num]>0)
+    wall_col_num.append(int(slot_col_num[0]-1))
+    wall_col_num.append(int(slot_col_num[-1]+1))
