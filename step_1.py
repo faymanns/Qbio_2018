@@ -93,8 +93,10 @@ def main(path_tif, path_laser_position, output_dir):
     average_image = np.zeros_like(full_video[0])
     
     for i,frame in enumerate(full_video):
+        if i % 100 == 0:
+            print(i)
         #thresh = cv2.threshold(frame, 0, 65535, cv2.THRESH_OTSU)
-        thresh = cv2.threshold(frame, 25000, 65535, cv2.THRESH_BINARY)
+        thresh = cv2.threshold(frame, 28000, np.iinfo(frame.dtype).max, cv2.THRESH_BINARY)
         #io.imsave(f'thresh{i}.tif', thresh[1])
         average_image += thresh[1]
     
@@ -113,21 +115,24 @@ def main(path_tif, path_laser_position, output_dir):
         elif not new_lane and not b:
             lanes.append(i)
             new_lane = True
+    if len(lanes) == 7:
+        lanes.append(-1)
     print(lanes)
+    print(len(lanes))
+    assert len(lanes) == 8 
     if not os.path.exists('frames'):
         os.makedirs('frames')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     for i in range(0, len(lanes)-1, 2):
         lane_id = int(i/2)
-        #io.imsave(f'lane{lane_id}.tif', full_video[:, lanes[i]:lanes[i+1], :])
-        for j,img in enumerate(full_video[:, lanes[i]:lanes[i+1], :]):
-            io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
-        video_output_path = os.path.join(output_dir, f'lane_{lane_id}.avi')
-        call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', video_output_path])
+        io.imsave(f'lane{lane_id}.tif', full_video[:, lanes[i]:lanes[i+1], :])
+        #for j,img in enumerate(full_video[:, lanes[i]:lanes[i+1], :]):
+        #    io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
+        #video_output_path = os.path.join(output_dir, f'lane_{lane_id}.avi')
+        #call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', video_output_path])
     shutil.rmtree('frames')
     
-    
-    wall_col_num = []
-    laser_col_num = []
     position = {'slot_0': {}, 'slot_1': {}, 'slot_2': {}, 'slot_3': {}}
     path_laser_position = os.path.expanduser(os.path.expandvars(path_laser_position))
     for i in [0, 1, 2, 3]:
