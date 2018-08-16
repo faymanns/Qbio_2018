@@ -48,21 +48,23 @@ class classify_ROIs(object):
 		self.corr_ROI = None
 		self.ROI_splits = None
 		
-	def get_laser_wall_pos(self, path):
+	def load_laser_wall_pos(self, in_dir):
 		"""
 		Set the x-position of the walls for each channel in the walking assay.
 		
 		Parameters
 		----------
-		path : str
-			Path of json file. File should be a dictionary with x keys, 
+		in_dir : str
+			Directory location of json file. Json file itself should be 
+			named 'position.json', and is a dictionary with x keys, 
 			slot_1,..., slot_x, each of which is a dictionary containing 3 
 			keys, "right_wall", "laser", and "left_wall". The values of 
 			each of these keys are floats representing the pixels.
 		
 		"""
 		
-		with open(path, 'r') as fp:
+		filename = os.path.join(in_dir, 'position.json')
+		with open(filename, 'r') as fp:
 			pos_dict = json.load(fp)
 		
 		for iS in range(self.num_slots):
@@ -78,21 +80,29 @@ class classify_ROIs(object):
 		self.ROI_bins[5] = self.pos_arr[2] - self.ROI_width
 		self.ROI_bins[6] = self.pos_arr[2] 
 	
-	def get_centroid_data(self, path):
+	def load_centroid_data(self, in_dir):
 		"""
 		Set the centroid x-coordiantes from file. 
 		
 		Parameters
 		----------
-		path : str
-			Path of centroid file, in txt format. File should be a 
-			N x num_slots array, with N frames, corresponding to the x-pos.
-			of the centroid for each of the slots.
+		in_dir : str
+			Directory of centroid file. Centroid files are in txt format, one 
+			for each slot. Files are named 'slot_1.avi_x.txt, ..., 
+			slot_N.avi_x.txt'. Each is a 1D list with with N frames, 
+			corresponding to the x-pos of the centroid for that slot.
 		
 		"""
 		
-		self.data = sp.loadtxt(path)
-		self.num_frames = self.data.shape[0]
+		for iS in range(self.num_slots):
+			filename = os.path.join(in_dir, 'lane_%s.avi_x.txt' % (iS + 1))
+			slot_data = sp.loadtxt(filename)
+			
+			if self.data is None:
+				self.data = sp.zeros((len(slot_data), self.num_slots))
+				self.num_frames = len(slot_data)			
+			self.data[:, iS] = slot_data
+		
 		self.raw_ROI = sp.empty((self.num_frames, self.num_slots))
 		self.corr_ROI = sp.zeros(self.data.shape)
 			
@@ -143,7 +153,7 @@ class classify_ROIs(object):
 					self.corr_ROI[frames_to_change, iS] = \
 						self.raw_ROI[split_shift_end, iS]
 	
-	def ROI_splits(self):
+	def get_ROI_splits(self):
 		"""
 		Get the frames corresponding to a beginning and end of an ROI.
 		"""
@@ -190,15 +200,15 @@ class classify_ROIs(object):
 			sp.savetxt(fp, self.ROI_splits.T, fmt='%d', delimiter='\t')
 		
 		
-def main(data_path, wall_locs_path, out_dir, mm_per_px=3./106, 
+def main(in_dir, out_dir, mm_per_px=3./106, 
 			ROI_width=3.5, fps=60, min_ROI_sec=0.25):
 	
 	a = classify_ROIs(mm_per_px, ROI_width, fps, min_ROI_sec)
-	a.get_laser_wall_pos(wall_locs_path)
-	a.get_centroid_data(data_path)
+	a.load_laser_wall_pos(in_dir)
+	a.load_centroid_data(in_dir)
 	a.ROI_nominal()
 	a.ROI_corrected()
-	a.ROI_splits()
+	a.get_ROI_splits()
 	a.save_data(out_dir)
 	
 	
