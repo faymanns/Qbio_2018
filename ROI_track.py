@@ -27,7 +27,7 @@ class classify_ROIs(object):
 					min_ROI_sec=0.25):
 		
 		# Number of slots in assay. 3 values for L, laser, and R, respectively.
-		self.num_slots = 4
+		self.num_slots = 2
 		self.pos_arr = sp.zeros((3, self.num_slots))
 		
 		# Minimum number of frames to count as a region-to-region transition
@@ -95,7 +95,7 @@ class classify_ROIs(object):
 		"""
 		
 		for iS in range(self.num_slots):
-			filename = os.path.join(in_dir, 'lane_%s.avi_x.txt' % (iS + 1))
+			filename = os.path.join(in_dir, 'lane_%s.avi_x.txt' % (iS))
 			slot_data = sp.loadtxt(filename)
 			
 			if self.data is None:
