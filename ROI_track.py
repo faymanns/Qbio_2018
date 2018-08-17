@@ -23,11 +23,29 @@ class classify_ROIs(object):
 	Classify fly as being in particular region of interest in the assay.
 	"""
 	
-	def __init__(self, mm_per_px=3./106, ROI_width=3.5, fps=60, 
-					min_ROI_sec=0.25):
+	def __init__(self, mm_per_px, ROI_width, fps, min_ROI_sec, num_slots):
+		"""
+		Initialize class. 
+		
+		Parameters
+		----------
+		mm_per_px : float
+			image resolution in mm per pixel
+		ROI_width: float
+			width of region of interest near wall or laser in mm
+		fps: float
+			recording rate in frames per second
+		min_ROI_sec: float
+			minimum dwell time in a given ROI; transitions shorter than this
+			will not count as transitions.
+		num_slots: int
+			number of slots in walking arena
+			
+		"""
+		
 		
 		# Number of slots in assay. 3 values for L, laser, and R, respectively.
-		self.num_slots = 2
+		self.num_slots = num_slots
 		self.pos_arr = sp.zeros((3, self.num_slots))
 		
 		# Minimum number of frames to count as a region-to-region transition
@@ -158,7 +176,8 @@ class classify_ROIs(object):
 		Get the frames corresponding to a beginning and end of an ROI.
 		"""
 		
-		self.ROI_splits = sp.zeros(self.num_slots)
+		# The columns of ROI_splits are: ROI, beg idx, end idx, slot number
+		self.ROI_splits = sp.zeros(4)
 		
 		for iS in range(self.num_slots):
 			split_idxs = sp.nonzero(sp.diff(self.corr_ROI[:, iS]))[0]
@@ -172,6 +191,11 @@ class classify_ROIs(object):
 				arr = [self.corr_ROI[idx_beg + 1, iS], idx_beg, idx_end, iS]
 				self.ROI_splits = sp.vstack((self.ROI_splits.T, arr)).T
 		self.ROI_splits = self.ROI_splits.astype(int)
+		import matplotlib.pyplot as plt
+		for iS in range(self.num_slots):
+			plt.plot(self.raw_ROI[:, iS])
+			plt.plot(self.corr_ROI[:, iS])
+			plt.show()
 		
 	def save_data(self, out_dir):
 		"""
@@ -200,10 +224,10 @@ class classify_ROIs(object):
 			sp.savetxt(fp, self.ROI_splits.T, fmt='%d', delimiter='\t')
 		
 		
-def main(in_dir, out_dir, mm_per_px=3./106, 
-			ROI_width=3.5, fps=60, min_ROI_sec=0.25):
+def main(in_dir, out_dir, mm_per_px=3./106, ROI_width=3.5, fps=60, 
+			min_ROI_sec=0.25, num_slots=4):
 	
-	a = classify_ROIs(mm_per_px, ROI_width, fps, min_ROI_sec)
+	a = classify_ROIs(mm_per_px, ROI_width, fps, min_ROI_sec, num_slots)
 	a.load_laser_wall_pos(in_dir)
 	a.load_centroid_data(in_dir)
 	a.ROI_nominal()
