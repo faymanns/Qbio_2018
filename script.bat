@@ -1,8 +1,5 @@
-#! /bin/bash
-
-for dir in ~/Desktop/Qbio_2018/data*
-do
-    tif_file="${dir}/sample_input.tif"
+for %dir in (d:\data\Fly videos\Experiment\*) do
+    tif_file=%dir%/sample_input.tif
     laser_file="${dir}/laserposition_paper.jpg"
     out_dir="${dir}/analysis_output"
     mkdir $out_dir

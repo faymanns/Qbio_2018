@@ -191,11 +191,6 @@ class classify_ROIs(object):
 				arr = [self.corr_ROI[idx_beg + 1, iS], idx_beg, idx_end, iS]
 				self.ROI_splits = sp.vstack((self.ROI_splits.T, arr)).T
 		self.ROI_splits = self.ROI_splits.astype(int)
-		import matplotlib.pyplot as plt
-		for iS in range(self.num_slots):
-			plt.plot(self.raw_ROI[:, iS])
-			plt.plot(self.corr_ROI[:, iS])
-			plt.show()
 		
 	def save_data(self, out_dir):
 		"""
