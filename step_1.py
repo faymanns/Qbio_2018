@@ -62,8 +62,9 @@ def laser_position(path, start, stop):
     int
         Position of laser in pixels.
     """
-    image = io.imread(path)
+    image = cv2.convertScaleAbs(io.imread(path))
     val, thresh = cv2.threshold(image, 0, np.iinfo(image.dtype).max, cv2.THRESH_OTSU)
+
     
     results = np.zeros(len(image))
     
@@ -89,6 +90,7 @@ def main(path_tif, path_laser_position, output_dir):
     """
     path = os.path.expanduser(os.path.expandvars(path_tif))
     full_video = io.imread(path)
+    print('full video type', full_video.dtype)
     
     average_image = np.zeros_like(full_video[0])
     
@@ -116,9 +118,8 @@ def main(path_tif, path_laser_position, output_dir):
             lanes.append(i)
             new_lane = True
     if len(lanes) == 7:
-        lanes.append(-1)
+        lanes.append(len(bool_rows))
     print(lanes)
-    print(len(lanes))
     assert len(lanes) == 8 
     if not os.path.exists('frames'):
         os.makedirs('frames')
@@ -126,11 +127,11 @@ def main(path_tif, path_laser_position, output_dir):
         os.makedirs(output_dir)
     for i in range(0, len(lanes)-1, 2):
         lane_id = int(i/2)
-        io.imsave(f'lane{lane_id}.tif', full_video[:, lanes[i]:lanes[i+1], :])
-        #for j,img in enumerate(full_video[:, lanes[i]:lanes[i+1], :]):
-        #    io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
-        #video_output_path = os.path.join(output_dir, f'lane_{lane_id}.avi')
-        #call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', video_output_path])
+        #io.imsave(f'lane{lane_id}.tif', full_video[:, lanes[i]:lanes[i+1], :])
+        for j,img in enumerate(full_video[:, lanes[i]:lanes[i+1], :]):
+            io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
+        video_output_path = os.path.join(output_dir, f'lane_{lane_id}.avi')
+        call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', video_output_path])
     shutil.rmtree('frames')
     
     position = {'slot_0': {}, 'slot_1': {}, 'slot_2': {}, 'slot_3': {}}
@@ -145,6 +146,8 @@ def main(path_tif, path_laser_position, output_dir):
     position_output_path = os.path.join(output_dir, 'position.json')
     with open(position_output_path, 'w') as fp:
         json.dump(position, fp, sort_keys=True, indent=4)
+    path_laser_position = os.path.expanduser(os.path.expandvars(path_laser_position))
+    laser_position(path_laser_position, 10, 100)
 
 
 if __name__ == '__main__':
