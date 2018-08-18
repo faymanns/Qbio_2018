@@ -9,7 +9,7 @@ from skimage import io
 import json
 import argh
 
-def hysteresis_filter(seq, n=5):
+def hysteresis_filter(seq, n=5, n_false=None):
     """
     This function implements a hysteresis filter for boolean sequences.
     The state in the sequence only changes if n consecutive element are in a different state.
@@ -20,28 +20,44 @@ def hysteresis_filter(seq, n=5):
         Sequence to be filtered.
     n : int, default=5
         Length of hysteresis memory.
+    n_false : int, optional, default=None
+        Length of hystresis memory applied for the false state.
+        This means the state is going to change to false when it encounters
+        n_false consecutive entries with value false.
+        If None, the same value is used for true and false.
 
     Returns
     -------
     seq : 1D np.array of type boolean
         Filtered sequence.
     """
+    if n_false is None:
+        n_false = n
     seq = seq.astype(np.bool)
     state = seq[0]
     start_of_state = 0
     memory = 0
+
+    current_n = n
+    if state:
+        current_n = n_false
+    
     for i in range(len(seq)):
         if state != seq[i]:
             memory += 1
-        elif memory < n:
+        elif memory < current_n:
             memory = 0
             continue
-        if memory == n:
-            seq[start_of_state:i-n+1]=state
-            start_of_state = i-n+1
+        if memory == current_n:
+            seq[start_of_state:i - current_n + 1] = state
+            start_of_state = i - current_n + 1
             state = not state
+            if state:
+                current_n = n_false
+            else:
+                current_n = n
             memory = 0
-    seq[start_of_state:]=state
+    seq[start_of_state:] = state
     return seq
 
 def laser_position(path, start, stop):
@@ -107,7 +123,7 @@ def main(path_tif, path_laser_position, output_dir):
     #io.imsave('result.tif', average_image.astype(np.uint16))
     
     bool_rows = np.any(average_image, axis=1)
-    bool_rows = hysteresis_filter(bool_rows, 4)
+    bool_rows = hysteresis_filter(bool_rows, 20, 4)
     
     lanes = []
     new_lane = True
