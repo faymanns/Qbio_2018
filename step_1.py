@@ -88,6 +88,7 @@ def main(path_tif, path_laser_position, output_dir):
     output_dir : string
         Directory where output is stored.
     """
+    print('start to read : '+path_tif)
     path = os.path.expanduser(os.path.expandvars(path_tif))
     full_video = io.imread(path)
     print('full video type', full_video.dtype)

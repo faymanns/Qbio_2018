@@ -1,7 +1,8 @@
-for %dir in (d:\data\Fly videos\Experiment\*) do
-    tif_file=%dir%/sample_input.tif
-    laser_file="${dir}/laserposition_paper.jpg"
-    out_dir="${dir}/analysis_output"
-    mkdir $out_dir
-    ./step_1.py $tif_file $laser_file $out_dir
-done
+SET EXPDIR="d:\Fly videos\Experiment"
+
+for /f "tokens=*" %%G in ('dir /b /a:d %EXPDIR%\*') do (
+    mkdir %EXPDIR%\%%G\analysis_output
+    if not exist %EXPDIR%\%%G\analysis_output\lane_3.avi (
+        python step_1.py %EXPDIR%\%%G\%%G_MMStack_Pos0.ome.tif %EXPDIR%\%%G\laserposition_paper.tif %EXPDIR%\%%G\analysis_output
+    )
+)
