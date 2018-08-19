@@ -79,8 +79,9 @@ def laser_position(path, start, stop):
         Position of laser in pixels.
     """
     image = cv2.convertScaleAbs(io.imread(path))
+    off_set = int(len(image) / 2 - 100)
+    image = image[:, off_set:off_set + 200]
     val, thresh = cv2.threshold(image, 0, np.iinfo(image.dtype).max, cv2.THRESH_OTSU)
-
     
     results = np.zeros(len(image))
     
@@ -88,7 +89,7 @@ def laser_position(path, start, stop):
         indices = np.nonzero(row)[0]
         results[i] = round((indices[-1] - indices[0]) / 2 + indices[0])
     
-    return int(round(np.mean(results[start:stop])))
+    return int(round(np.mean(results[start:stop]))) + off_set
 
 def main(path_tif, path_laser_position, output_dir):
     """
@@ -120,10 +121,10 @@ def main(path_tif, path_laser_position, output_dir):
         average_image += thresh[1]
     
     average_image = average_image / len(full_video)
-    #io.imsave('result.tif', average_image.astype(np.uint16))
+    io.imsave('result.tif', average_image.astype(np.uint16))
     
     bool_rows = np.any(average_image, axis=1)
-    bool_rows = hysteresis_filter(bool_rows, 20, 4)
+    bool_rows = hysteresis_filter(bool_rows, 50, 1)
     
     lanes = []
     new_lane = True
@@ -156,8 +157,8 @@ def main(path_tif, path_laser_position, output_dir):
     for i in [0, 1, 2, 3]:
         mid_col_num = int(np.mean([lanes[i * 2], lanes[i * 2 + 1]]))
         slot_col_num = np.argwhere(average_image[mid_col_num]>0)
-        position[f'slot_{i}']['left_wall'] = int(slot_col_num[0]-1)
-        position[f'slot_{i}']['right_wall'] = int(slot_col_num[-1]+1)
+        position[f'slot_{i}']['left_wall'] = int(slot_col_num[0])
+        position[f'slot_{i}']['right_wall'] = int(slot_col_num[-1])
         position[f'slot_{i}']['laser'] = laser_position(path_laser_position, lanes[i * 2], lanes[i * 2 + 1])
     
     position_output_path = os.path.join(output_dir, 'position.json')
