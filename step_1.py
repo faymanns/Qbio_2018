@@ -110,7 +110,7 @@ def main(path_tif, path_laser_position, output_dir):
     print('start to read : '+path_tif)
     path = os.path.expanduser(os.path.expandvars(path_tif))
     full_video = io.imread(path)
-     if files were renamed it fails to automatically load all files
+    # if files were renamed it fails to automatically load all files
     if len(full_video) < 18000:
         full_video = np.concatenate((full_video, io.imread(path[:-8] + '_1.ome.tif')), axis=0)
     if len(full_video) < 18000:
