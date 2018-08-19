@@ -79,7 +79,7 @@ def laser_position(path, start, stop):
         Position of laser in pixels.
     """
     image = cv2.convertScaleAbs(io.imread(path))
-    off_set = int(len(image) / 2 - 100)
+    off_set = int(image.shape[1] / 2 - 100)
     image = image[:, off_set:off_set + 200]
     val, thresh = cv2.threshold(image, 0, np.iinfo(image.dtype).max, cv2.THRESH_OTSU)
     
@@ -87,6 +87,8 @@ def laser_position(path, start, stop):
     
     for i, row in enumerate(thresh):
         indices = np.nonzero(row)[0]
+        if len(indices) == 0:
+            continue
         results[i] = round((indices[-1] - indices[0]) / 2 + indices[0])
     
     return int(round(np.mean(results[start:stop]))) + off_set
@@ -108,7 +110,7 @@ def main(path_tif, path_laser_position, output_dir):
     print('start to read : '+path_tif)
     path = os.path.expanduser(os.path.expandvars(path_tif))
     full_video = io.imread(path)
-    # if files were renamed it fails to automatically load all files
+     if files were renamed it fails to automatically load all files
     if len(full_video) < 18000:
         full_video = np.concatenate((full_video, io.imread(path[:-8] + '_1.ome.tif')), axis=0)
     if len(full_video) < 18000:
@@ -120,6 +122,7 @@ def main(path_tif, path_laser_position, output_dir):
     assert len(full_video) >= 18000
         
     
+    average_thresh_image = np.zeros_like(full_video[0])
     average_image = np.zeros_like(full_video[0])
     
     for i,frame in enumerate(full_video):
@@ -128,12 +131,15 @@ def main(path_tif, path_laser_position, output_dir):
         #thresh = cv2.threshold(frame, 0, 65535, cv2.THRESH_OTSU)
         thresh = cv2.threshold(frame, 28000, np.iinfo(frame.dtype).max, cv2.THRESH_BINARY)
         #io.imsave(f'thresh{i}.tif', thresh[1])
-        average_image += thresh[1]
+        average_thresh_image += thresh[1]
+        #average_image += frame
     
-    average_image = average_image / len(full_video)
-    io.imsave('result.tif', average_image.astype(np.uint16))
+    average_thresh_image = average_thresh_image / len(full_video)
+    #average_image = average_image / len(full_video)
+    average_image = np.mean(full_video, axis=0)
+    #io.imsave('result.tif', average_thresh_image.astype(np.uint16))
     
-    bool_rows = np.any(average_image, axis=1)
+    bool_rows = np.any(average_thresh_image, axis=1)
     bool_rows = hysteresis_filter(bool_rows, 50, 1)
     
     lanes = []
@@ -149,26 +155,39 @@ def main(path_tif, path_laser_position, output_dir):
         lanes.append(len(bool_rows))
     print(lanes)
     assert len(lanes) == 8 
-    if not os.path.exists('frames'):
-        os.makedirs('frames')
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    for i in range(0, len(lanes)-1, 2):
-        lane_id = int(i/2)
-        #io.imsave(f'lane{lane_id}.tif', full_video[:, lanes[i]:lanes[i+1], :])
-        for j,img in enumerate(full_video[:, lanes[i]:lanes[i+1], :]):
-            io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
-        video_output_path = os.path.join(output_dir, f'lane_{lane_id}.avi')
-        call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', video_output_path])
-    shutil.rmtree('frames')
+    #if not os.path.exists('frames'):
+    #    os.makedirs('frames')
+    #if not os.path.exists(output_dir):
+    #    os.makedirs(output_dir)
+    #for i in range(0, len(lanes)-1, 2):
+    #    lane_id = int(i/2)
+    #    #io.imsave(f'lane{lane_id}.tif', full_video[:, lanes[i]:lanes[i+1], :])
+    #    for j,img in enumerate(full_video[:, lanes[i]:lanes[i+1], :]):
+    #        io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
+    #    video_output_path = os.path.join(output_dir, f'lane_{lane_id}.avi')
+    #    call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', video_output_path])
+    #shutil.rmtree('frames')
     
     position = {'slot_0': {}, 'slot_1': {}, 'slot_2': {}, 'slot_3': {}}
     path_laser_position = os.path.expanduser(os.path.expandvars(path_laser_position))
     for i in [0, 1, 2, 3]:
-        mid_col_num = int(np.mean([lanes[i * 2], lanes[i * 2 + 1]]))
-        slot_col_num = np.argwhere(average_image[mid_col_num]>0)
-        position[f'slot_{i}']['left_wall'] = int(slot_col_num[0])
-        position[f'slot_{i}']['right_wall'] = int(slot_col_num[-1])
+        #io.imsave(f'average_imgage_lane_{i}.tif', average_image[lanes[i * 2] : lanes[i * 2 + 1]].astype(np.uint16))
+        #io.imsave(f'soblex_{i}.tif', cv2.Sobel(average_image[lanes[i *2] : lanes[i * 2 +1]], cv2.CV_16U, 1, 0, ksize=5))
+        left_average_image =  average_image[lanes[i *2] : lanes[i * 2 +1], :40].astype(np.uint16) / np.iinfo(np.uint16).max * np.iinfo(np.uint8).max
+        right_average_image = average_image[lanes[i *2] : lanes[i * 2 +1], -40:].astype(np.uint16) / np.iinfo(np.uint16).max * np.iinfo(np.uint8).max
+        left_average_image = left_average_image.astype(np.uint8)
+        right_average_image = right_average_image.astype(np.uint8)
+        #io.imsave(f'left_average_image_{i}.tif', left_average_image)
+        #io.imsave(f'right_average_image_{i}.tif', right_average_image)
+        ret, left_wall_thresh_image = cv2.threshold(left_average_image, 0, np.iinfo(left_average_image.dtype).max, cv2.THRESH_OTSU)
+        ret, right_wall_thresh_image = cv2.threshold(right_average_image, 0, np.iinfo(right_average_image.dtype).max, cv2.THRESH_OTSU)
+        #io.imsave(f'left_wall_thresh_image_{i}.tif', left_wall_thresh_image)
+        #io.imsave(f'right_wall_thresh_image_{i}.tif', right_wall_thresh_image)
+        mid_col_num = int((lanes[i * 2 + 1] - lanes[i * 2]) / 2) # int(np.mean([lanes[i * 2], lanes[i * 2 + 1]]))
+        left_slot_col_num = np.argwhere(left_wall_thresh_image[mid_col_num]>0)
+        right_slot_col_num = np.argwhere(right_wall_thresh_image[mid_col_num]>0)
+        position[f'slot_{i}']['left_wall'] = int(left_slot_col_num[0])
+        position[f'slot_{i}']['right_wall'] = int(right_slot_col_num[-1] + average_image.shape[1] - 40)
         position[f'slot_{i}']['laser'] = laser_position(path_laser_position, lanes[i * 2], lanes[i * 2 + 1])
     
     position_output_path = os.path.join(output_dir, 'position.json')
