@@ -7,6 +7,7 @@ import csv
 import argh
 import numpy as np
 import cv2
+import time
 from skimage import io
 
 def main(input_dir, max_frame = 18000):
@@ -14,14 +15,12 @@ def main(input_dir, max_frame = 18000):
     roi_file = input_dir + '/corrected_ROIs.txt'
     orient_file = input_dir + '/corrected_orient.txt'
 
+    path, folder = os.path.split(input_dir)
+    if folder == 'analysis_output':
+        path, folder = os.path.split(path)
+
     roi_list = list(csv.reader(open(roi_file, 'rt'), delimiter='\t'))
     orient_list = list(csv.reader(open(orient_file, 'rt'), delimiter='\t'))
-
-    
-    
-    
-    frame_seq = 749
-    
 
     for lane_id in range(len(roi_list[0])):
         print('start to process lane :'+str(lane_id))
@@ -30,10 +29,11 @@ def main(input_dir, max_frame = 18000):
         cap = cv2.VideoCapture(input_dir+'/lane_'+str(lane_id)+'.avi')
         
         # make temporary frames
+        tmpPath = 'tmp_'+folder+'_lane_'+str(lane_id)
         
-        if os.path.exists('tmpframes'):
-            shutil.rmtree('tmpframes')
-        os.makedirs('tmpframes')
+        if os.path.exists(tmpPath):
+            shutil.rmtree(tmpPath)
+        os.makedirs(tmpPath)
 
         j = 0
         for i in range(len(roi_list)):
@@ -49,12 +49,13 @@ def main(input_dir, max_frame = 18000):
 
                 #Store this frame to an image
                 #cv2.imwrite('tmpframes/ext_'+str(i)+'.jpg', frame)
-                io.imsave(f'tmpframes/ext_{j}.tif', frame)
+                io.imsave(f'{tmpPath}/ext_{j}.tif', frame)
                 j = j + 1
 
         video_output_path = os.path.join(input_dir, f'lane_{lane_id}_top.avi')
-        call(['ffmpeg', '-y', '-i', f'tmpframes/ext_%d.tif', video_output_path])
-        shutil.rmtree('tmpframes')
+        call(['ffmpeg', '-y', '-i', f'{tmpPath}/ext_%d.tif', video_output_path])
+        time.sleep(3)
+        shutil.rmtree(tmpPath)
 
 
 if __name__ == '__main__':
