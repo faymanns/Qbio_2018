@@ -33,6 +33,7 @@ def main(input_dir, max_frame = 18000):
         
         if os.path.exists(tmpPath):
             shutil.rmtree(tmpPath)
+            time.sleep(3)
         os.makedirs(tmpPath)
 
         j = 0
@@ -52,10 +53,14 @@ def main(input_dir, max_frame = 18000):
                 io.imsave(f'{tmpPath}/ext_{j}.tif', frame)
                 j = j + 1
 
+        # release object
+        cap.release()
+
         video_output_path = os.path.join(input_dir, f'lane_{lane_id}_top.avi')
         call(['ffmpeg', '-y', '-i', f'{tmpPath}/ext_%d.tif', video_output_path])
         time.sleep(3)
         shutil.rmtree(tmpPath)
+        time.sleep(3)
 
 
 if __name__ == '__main__':
