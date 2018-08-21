@@ -36,8 +36,8 @@ class transitions(object):
 		self.ROI_data = None
 		self.trans_mat = sp.zeros((6, 6))
 		self.trans_mat_n = sp.zeros(6)
-		self.backs = 0
-		self.fwds = 0
+		self.backs = None
+		self.fwds = None
 		self.pct_fwds = None
 		self.pct_fwd_avg = None
 		self.pct_fwd_sem = None
@@ -63,6 +63,9 @@ class transitions(object):
 			if genotype in dir:
 				full_dir = os.path.join(in_dir, dir)
 				self.dirs_to_analyze.append(full_dir)
+		
+		assert len(self.dirs_to_analyze) != 0, 'No genotypes loaded!'
+		
 		
 	def load_ROI_data(self, dir):
 		"""
@@ -159,10 +162,8 @@ class transitions(object):
 		bootstraps = sp.random.choice(vals, size=num_total, replace=True)
 		bootstraps = sp.reshape(bootstraps[:num_total], (num_samples, -1))
 		
-		# Get average and std for each
+		# Get statistic for each bootstrap sample
 		self.pct_fwds = (1.*sp.sum(bootstraps, axis=0)/bootstraps.shape[0])
-		self.pct_fwd_avg = sp.average(self.pct_fwds)
-		self.pct_fwd_sem = sp.std(self.pct_fwds)
 		
 	def save_data(self, in_dir, genotype):
 		"""
@@ -179,23 +180,35 @@ class transitions(object):
 		
 		out_dir = os.path.join(in_dir, '_stats', genotype)
 		out_file = os.path.join(out_dir, 'pct_fwd.txt')
-		self.stats = [self.pct_fwd_avg - self.pct_fwd_sem, 
-						self.pct_fwd_avg + self.pct_fwd_sem]
+		
 		if not os.path.isdir(out_dir):
 			os.makedirs(out_dir)
 		with open(out_file, 'w') as fp:
-			sp.savetxt(fp, self.stats, fmt='%.5f', delimiter='\t')
+			sp.savetxt(fp, self.pct_fwds, fmt='%.5f', delimiter='\t')
 		
 		
-def main(in_dir, genotype, num_slots=4):
+def main(in_dir, genotype=None, num_slots=4):
 	
 	a = transitions(num_slots)
-	a.get_all_dirs(in_dir, genotype)
-	for dir in a.dirs_to_analyze:
-		a.load_ROI_data(dir)
-		a.trans_prob_laser()
-	a.calc_pct_fwd()
-	a.save_data(in_dir, genotype)
+	if genotype == None:
+		genotypes = ['empty_0.5mW', 'empty_1.5mW', 'iav_0.5mW', 'iav_1.5mW',
+						'ppk_0.5mW', 'ppk_1.5mW', 'R14F05_0.5mW', 
+						'R14F05_1.5mW', 'R38B08R81E10_0.5mW', 
+						'R38B08R81E10_1.5mW', 'R48A07_0.5mW', 'R48A07_1.5mW', 
+						'R86D09_0.5mW', 'R86D09_1.5mW', 'stum_0.5mW', 
+						'stum_1.5mW']				
+	else:
+		genotypes = [genotype]
 	
+	for genotype in genotypes:
+		a.get_all_dirs(in_dir, genotype)
+		a.fwds = 0
+		a.backs = 0
+		for dir in a.dirs_to_analyze:
+			a.load_ROI_data(dir)
+			a.trans_prob_laser()
+		a.calc_pct_fwd()
+		a.save_data(in_dir, genotype)
+		
 if __name__ == '__main__':
 	argh.dispatch_command(main)
