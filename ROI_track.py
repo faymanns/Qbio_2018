@@ -123,7 +123,7 @@ class classify_ROIs(object):
 		
 		self.raw_ROI = sp.empty((self.num_frames, self.num_slots))
 		self.corr_ROI = sp.zeros(self.data.shape)
-			
+		
 	def ROI_nominal(self):
 		"""
 		Set the ROIs nominally from file, for each slot separately.

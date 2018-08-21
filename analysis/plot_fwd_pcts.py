@@ -47,7 +47,10 @@ class plot_fwd_pcts(object):
 			analysis directory.
 		
 		"""
-
+		
+		if not os.path.isdir(in_dir):
+			print ('%s does not exist!' % in_dir)
+			quit()
 		all_dirs = next(os.walk(in_dir))[1]
 		self.dirs_to_plot = []
 		self.genotypes = []
@@ -83,8 +86,10 @@ class plot_fwd_pcts(object):
 		fig = plt.figure()
 		fig.set_size_inches(3, 4)
 		plt.errorbar(range(Nn), sort_avgs, sort_stds, lw=0, 
-						elinewidth=1.5, capsize=5, fmt='.', color='k')
-		plt.ylim(0, 100)
+						elinewidth=1.5, capsize=5, color='k')
+		plt.scatter(range(Nn), sort_avgs, c=sp.arange(Nn), 
+						cmap=plt.cm.winter, zorder=100, s=30)
+		plt.ylim(0, 105)
 		plt.xticks(rotation=90)
 		plt.xticks(range(Nn), sort_labels)
 					
@@ -100,6 +105,9 @@ class plot_fwd_pcts(object):
 		"""
 		
 		out_file = os.path.join(in_dir, 'pct_fwds%s.png' % self.laser_int)
+		plt.tight_layout()
+		plt.savefig(out_file)
+		out_file = os.path.join(in_dir, 'pct_fwds%s.svg' % self.laser_int)
 		plt.tight_layout()
 		plt.savefig(out_file)
 		
