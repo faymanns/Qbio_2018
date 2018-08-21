@@ -11,10 +11,8 @@ http://creativecommons.org/licenses/by-nc-sa/4.0/.
 
 import scipy as sp
 import matplotlib.pyplot as plt
-import json
 import argh
 import os
-import glob
 
 
 class transitions(object):
@@ -110,7 +108,7 @@ class transitions(object):
 			self.trans_mat[:, iRi] = self.trans_mat[:, iRi]/\
 										sp.sum(self.trans_mat[:, iRi])
 	
-	def laser_transitions(self):
+	def trans_prob_laser(self):
 		"""
 		Get the transitions near the laser; either through or backs away.
 		These values are the percentage of forwards when entering the region
@@ -189,14 +187,13 @@ class transitions(object):
 			sp.savetxt(fp, self.stats, fmt='%.5f', delimiter='\t')
 		
 		
-def main(in_dir, genotype, mm_per_px=3./106, ROI_width=3.5, fps=60, 
-			min_ROI_sec=0.25, num_slots=4):
+def main(in_dir, genotype, num_slots=4):
 	
 	a = transitions(num_slots)
 	a.get_all_dirs(in_dir, genotype)
 	for dir in a.dirs_to_analyze:
 		a.load_ROI_data(dir)
-		a.laser_transitions()
+		a.trans_prob_laser()
 	a.calc_pct_fwd()
 	a.save_data(in_dir, genotype)
 	
