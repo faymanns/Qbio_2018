@@ -65,8 +65,7 @@ class transitions(object):
 				self.dirs_to_analyze.append(full_dir)
 		
 		assert len(self.dirs_to_analyze) != 0, 'No genotypes loaded!'
-		
-		
+			
 	def load_ROI_data(self, dir):
 		"""
 		Set the ROI data from file.
