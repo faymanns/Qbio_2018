@@ -1,7 +1,7 @@
 """
 Smooth and plot centroid data and color by acceleration 
 
-Created by Nirag Kadakia at 12:00 08-14-2018
+Created by Nirag Kadakia at 12:00 08-21-2018
 This work is licensed under the 
 Creative Commons Attribution-NonCommercial-ShareAlike 4.0 
 International License. 
