@@ -7,7 +7,10 @@ import numpy as np
 import cv2
 from skimage import io
 import json
+import csv
 import argh
+import datetime
+import time
 
 def hysteresis_filter(seq, n=5, n_false=None):
     """
@@ -78,7 +81,7 @@ def laser_position(path, start, stop):
     int
         Position of laser in pixels.
     """
-    image = cv2.convertScaleAbs(io.imread(path))
+    image = (io.imread(path) / np.iinfo(np.uint16).max * np.iinfo(np.uint8).max).astype(np.uint8)
     off_set = int(image.shape[1] / 2 - 100)
     image = image[:, off_set:off_set + 200]
     val, thresh = cv2.threshold(image, 0, np.iinfo(image.dtype).max, cv2.THRESH_OTSU)
@@ -154,22 +157,30 @@ def main(path_tif, path_laser_position, output_dir):
     if len(lanes) == 7:
         lanes.append(len(bool_rows))
     print(lanes)
-    assert len(lanes) == 8 
-    #if not os.path.exists('frames'):
-    #    os.makedirs('frames')
-    #if not os.path.exists(output_dir):
-    #    os.makedirs(output_dir)
-    #for i in range(0, len(lanes)-1, 2):
-    #    lane_id = int(i/2)
-    #    #io.imsave(f'lane{lane_id}.tif', full_video[:, lanes[i]:lanes[i+1], :])
-    #    for j,img in enumerate(full_video[:, lanes[i]:lanes[i+1], :]):
-    #        io.imsave(f'frames/lane_{lane_id}_frame_{j}.tif', img)
-    #    video_output_path = os.path.join(output_dir, f'lane_{lane_id}.avi')
-    #    call(['ffmpeg', '-y', '-i', f'frames/lane_{lane_id}_frame_%d.tif', video_output_path])
-    #shutil.rmtree('frames')
+    with open(os.path.join(output_dir,'lanes.csv'), 'w') as fp:
+        wr = csv.writer(fp, quoting=csv.QUOTE_ALL)
+        wr.writerow(lanes)
+    
+    assert len(lanes) == 8
+    now = datetime.datetime.now()
+    unix = str(int(time.mktime(now.timetuple())))
+    frame_path = 'frames' + unix
+    if not os.path.exists(frame_path):
+        os.makedirs(frame_path)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    for i in range(0, len(lanes)-1, 2):
+        lane_id = int(i/2)
+        #io.imsave(f'lane{lane_id}.tif', full_video[:, lanes[i]:lanes[i+1], :])
+        for j,img in enumerate(full_video[:, lanes[i]:lanes[i+1], :]):
+            io.imsave(f'{frame_path}/lane_{lane_id}_frame_{j}.tif', img)
+        video_output_path = os.path.join(output_dir, f'lane_{lane_id}.avi')
+        call(['ffmpeg', '-y', '-i', f'{frame_path}/lane_{lane_id}_frame_%d.tif', video_output_path])
+    shutil.rmtree(frame_path)
     
     position = {'slot_0': {}, 'slot_1': {}, 'slot_2': {}, 'slot_3': {}}
     path_laser_position = os.path.expanduser(os.path.expandvars(path_laser_position))
+
     for i in [0, 1, 2, 3]:
         #io.imsave(f'average_imgage_lane_{i}.tif', average_image[lanes[i * 2] : lanes[i * 2 + 1]].astype(np.uint16))
         #io.imsave(f'soblex_{i}.tif', cv2.Sobel(average_image[lanes[i *2] : lanes[i * 2 +1]], cv2.CV_16U, 1, 0, ksize=5))
@@ -193,8 +204,6 @@ def main(path_tif, path_laser_position, output_dir):
     position_output_path = os.path.join(output_dir, 'position.json')
     with open(position_output_path, 'w') as fp:
         json.dump(position, fp, sort_keys=True, indent=4)
-    path_laser_position = os.path.expanduser(os.path.expandvars(path_laser_position))
-    laser_position(path_laser_position, 10, 100)
 
 
 if __name__ == '__main__':
