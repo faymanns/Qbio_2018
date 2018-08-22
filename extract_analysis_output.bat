@@ -1,5 +1,5 @@
 SET EXPDIR="d:\Fly videos\Experiment"
-SET DEST="D:\Fly videos\analysis_output"
+SET DEST="D:\analysis_outputs"
 mkdir %DEST%
 
 for /f "tokens=*" %%G in ('dir /b /a:d %EXPDIR%\*') do (

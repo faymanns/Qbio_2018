@@ -188,6 +188,8 @@ class classify_ROIs(object):
 			for iI in range(len(split_idxs) - 1):
 				idx_beg = split_idxs[iI] + 1
 				idx_end = split_idxs[iI + 1] + 1
+				if idx_beg+1 >= self.num_frames:
+				    continue
 				arr = [self.corr_ROI[idx_beg + 1, iS], idx_beg, idx_end, iS]
 				self.ROI_splits = sp.vstack((self.ROI_splits.T, arr)).T
 		self.ROI_splits = self.ROI_splits.astype(int)
