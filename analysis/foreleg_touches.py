@@ -359,11 +359,19 @@ class postures(object):
 			plt.axhline(R_wall_pos*self.mm_per_px, linestyle='--')
 			self.save_touches(dir, lane, self.posture_names[iP])
 	
-	def get_num_touches_per_ROI(self, in_dir, genotype):
+	def plot_num_touches_per_ROI(self, in_dir, genotype):
 		"""
 		Plot the number of touches per ROI, average and sem.
-		"""
 		
+		Parameters
+		----------
+		
+		in_dir: str
+			directory of data 
+		genotyp: str
+			genotype to be saved and plotted.
+			
+		"""
 		
 		fig = plt.figure()
 		fig.set_size_inches(2, 4.0)
@@ -389,6 +397,45 @@ class postures(object):
 		plt.savefig(filename)
 		plt.close()
 		
+	def plot_xy_data(self, in_dir, genotype):
+		"""
+		"""
+		
+		plots_dir = os.path.join(in_dir, '_postures')
+		
+		for iP, posture in enumerate(self.posture_names):
+			filename = os.path.join(plots_dir, '_xys', '%s_laser_x_%s.txt' 
+									% (genotype, posture))
+			sp.savetxt(filename, self.laser_xs[iP])
+			filename = os.path.join(plots_dir, '_xys', '%s_laser_y_%s.txt' 
+									% (genotype, posture))
+			sp.savetxt(filename, self.laser_ys[iP])
+			filename = os.path.join(plots_dir, '_xys', '%s_wall_x_%s.txt' 
+									% (genotype, posture))
+			sp.savetxt(filename, self.wall_xs[iP])
+			filename = os.path.join(plots_dir, '_xys', '%s_wall_y_%s.txt' 
+									% (genotype, posture))
+			sp.savetxt(filename, self.wall_ys[iP])
+		
+		# Plot wall y-distribution; aggregate all postures (L and R leg)
+		wall_data = []
+		laser_data = []
+		for iP in range(len(self.posture_names)):
+			wall_data.extend(self.wall_ys[iP])
+			laser_data.extend(self.laser_ys[iP])
+		
+		filename = os.path.join(plots_dir, '_xys', '%s_y_hist.png' % genotype)
+		hist, bins = sp.histogram(wall_data, bins=sp.linspace(0, 2.1, 20), 
+									density=True)
+		fig = plt.figure()
+		fig.set_size_inches(3, 3)
+		plt.plot(bins[:-1], hist, color='b')
+		hist, bins = sp.histogram(laser_data, bins=sp.linspace(0, 2.1, 20), 
+									density=True)
+		plt.plot(bins[:-1], hist, color='r')
+		plt.tight_layout()
+		plt.savefig(filename)
+			
 		
 def main(in_dir, genotype=None, mm_per_px=3./106, fps=60, num_slots=4):
 	
@@ -429,7 +476,8 @@ def main(in_dir, genotype=None, mm_per_px=3./106, fps=60, num_slots=4):
 				a.get_frame_ranges()
 				a.get_touches(dir, iL)
 		
-		a.get_num_touches_per_ROI(in_dir, genotype)
+		a.plot_xy_data(in_dir, genotype)
+		a.plot_num_touches_per_ROI(in_dir, genotype)
 		
 		
 if __name__ == '__main__':

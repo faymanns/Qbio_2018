@@ -175,9 +175,7 @@ class centroid(object):
 			
 			smoothed_data = self.smooth(self.data[:, iS])
 			plt.scatter(self.Tt, smoothed_data, s=1, color='k')
-			plt.axhline(y = self.pos_arr[0, iS], color='r', lw=2, ls='--')
 			plt.axhline(y = self.pos_arr[1, iS], color='r', lw=2, ls='--')
-			plt.axhline(y = self.pos_arr[2, iS], color='r', lw=2, ls='--')
 			
 			out_dir = os.path.join(base_dir, '_centroid/_tracks', )
 			if not os.path.isdir(out_dir):
