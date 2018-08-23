@@ -111,3 +111,6 @@ frames
 # input
 **.tif
 **.jpg
+
+#OSX
+**.DS_Store
