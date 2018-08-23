@@ -51,13 +51,14 @@ class plot_fwd_pcts(object):
 		if not os.path.isdir(in_dir):
 			print ('%s does not exist!' % in_dir)
 			quit()
-		all_dirs = next(os.walk(in_dir))[1]
+		
+		full_dir = os.path.join(in_dir, '_centroid')
+		all_dirs = next(os.walk(full_dir))[1]
 		self.dirs_to_plot = []
 		self.genotypes = []
 		for dir in all_dirs:
 			if self.laser_int in dir:
-				full_dir = os.path.join(in_dir, dir)
-				self.dirs_to_plot.append(full_dir)
+				self.dirs_to_plot.append(os.path.join(full_dir, dir))
 				self.genotypes.append('%s' % (dir.replace(self.laser_int, '')))
 		self.genotypes = sp.array(self.genotypes, dtype='object')
 		
@@ -78,9 +79,18 @@ class plot_fwd_pcts(object):
 		self.avgs = sp.average(self.data, axis=1)*100
 		self.stds = sp.std(self.data, axis=1)*100
 		sort_idxs = sp.argsort(self.avgs)[::-1]
+		
+		# Make empty zero index if not yet (hacky!!)
+		if sort_idxs[0] != 0:
+			zero_idx = sp.argwhere(sort_idxs == 0)[0]
+			change_idx = sort_idxs[zero_idx]
+			sort_idxs[zero_idx] = sort_idxs[0]
+			sort_idxs[0] = 0
+			
 		sort_labels = self.genotypes[sort_idxs]
 		sort_avgs = self.avgs[sort_idxs]
 		sort_stds = self.stds[sort_idxs]
+		
 		
 		# Plot for each genotype
 		fig = plt.figure()
@@ -104,10 +114,12 @@ class plot_fwd_pcts(object):
 		
 		"""
 		
-		out_file = os.path.join(in_dir, 'pct_fwds%s.png' % self.laser_int)
+		out_file = os.path.join(in_dir, '_centroid', 'pct_fwds%s.png' 
+					% self.laser_int)
 		plt.tight_layout()
 		plt.savefig(out_file)
-		out_file = os.path.join(in_dir, 'pct_fwds%s.svg' % self.laser_int)
+		out_file = os.path.join(in_dir, '_centroid', 'pct_fwds%s.svg' 
+					% self.laser_int)
 		plt.tight_layout()
 		plt.savefig(out_file)
 		

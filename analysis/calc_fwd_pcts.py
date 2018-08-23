@@ -63,8 +63,6 @@ class transitions(object):
 			if genotype in dir:
 				full_dir = os.path.join(in_dir, dir)
 				self.dirs_to_analyze.append(full_dir)
-		
-		assert len(self.dirs_to_analyze) != 0, 'No genotypes loaded!'
 			
 	def load_ROI_data(self, dir):
 		"""
@@ -177,7 +175,7 @@ class transitions(object):
 		
 		"""
 		
-		out_dir = os.path.join(in_dir, '_stats', genotype)
+		out_dir = os.path.join(in_dir, '_centroid', genotype)
 		out_file = os.path.join(out_dir, 'pct_fwd.txt')
 		
 		if not os.path.isdir(out_dir):
@@ -201,6 +199,8 @@ def main(in_dir, genotype=None, num_slots=4):
 	
 	for genotype in genotypes:
 		a.get_all_dirs(in_dir, genotype)
+		if len(a.dirs_to_analyze) == 0:
+			continue
 		a.fwds = 0
 		a.backs = 0
 		for dir in a.dirs_to_analyze:

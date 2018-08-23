@@ -37,12 +37,16 @@ class postures(object):
 		"""
 		
 		if genotype is None:
-			self.genotypes = ['empty_0.5mW', 'empty_1.5mW', 'iav_0.5mW', 'iav_1.5mW',
-						'ppk_0.5mW', 'ppk_1.5mW', 'R14F05_0.5mW', 
+			self.genotypes = ['empty_0.5mW', 'empty_1.5mW', 'iav_0.5mW', 
+						'iav_1.5mW', 'ppk_0.5mW', 'ppk_1.5mW', 'R14F05_0.5mW',
 						'R14F05_1.5mW', 'R38B08R81E10_0.5mW', 
 						'R38B08R81E10_1.5mW', 'R48A07_0.5mW', 'R48A07_1.5mW', 
 						'R86D09_0.5mW', 'R86D09_1.5mW', 'stum_0.5mW', 
 						'stum_1.5mW']				
+			#self.genotypes = ['R14F05_0.5mW', 'R48A07_0.5mW', 
+			#self.genotypes = ['R38B08R81E10_0.5mW', 'ppk_0.5mW']
+			
+			
 		else:
 			self.genotypes = [genotype]
 			
@@ -52,12 +56,11 @@ class postures(object):
 		self.laser_R_splits = None
 		self.wall_L_splits = None
 		self.wall_R_splits = None
-		
 		self.ROI_switch_idxs = None
 		self.frm_ROI = None
+		self.num_postures = 2
+		self.posture_names = ['right_leg', 'left_leg']
 		
-		# Construct data variables
-		self.num_frames = None
 		self.Tt = None
 		self.fps = fps
 		self.mm_per_px = mm_per_px
@@ -202,7 +205,7 @@ class postures(object):
 
 	def save_touches(self, dir, lane, name):
 		"""
-		Save the traces and statistics of wall and laser touches.
+		Save the traces of wall and laser touches.
 		
 		Parameters
 		----------
@@ -222,7 +225,7 @@ class postures(object):
 		plt.yticks(fontsize=18)
 		plt.ylim(-1, 25)
 		
-		plots_dir = os.path.join(os.path.dirname(dir), '_touches')
+		plots_dir = os.path.join(os.path.dirname(dir), '_postures')
 		filename = os.path.join(plots_dir, '%s_%s_lane_%d.png' 
 								% (os.path.basename(dir), name, lane))
 		plt.tight_layout()
@@ -233,7 +236,7 @@ class postures(object):
 		plt.savefig(filename)
 		plt.close()
 	
-	def get_touches(self, dir, lane, smoothing_dt=0.15, min_peak_sep=0.5, dwall=1):
+	def get_touches(self, dir, lane, smoothing_dt=0.15, peak_sep=0.5, dwall=1):
 		"""
 		Get number of touches on wall or laser per ROI entrance.
 		
@@ -246,102 +249,169 @@ class postures(object):
 			directory of exp data csv from DLC
 		smoothing_dt: float
 			length of box window smoother in seconds
-		min_peak_sep: float
+		peak_sep: float
 			length of minimum separation between peaks, in seconds
 		dwall: float
 			distance from wall or laser that counts as a touch, in mm
 			
 		"""
 		
-		mpd = int(min_peak_sep*self.fps)
+		mpd = int(peak_sep*self.fps)
 		dw = int(dwall/self.mm_per_px)
 		
-		posture_names = ['right_leg', 'left_leg']
+		# Two postures to track (left and right leg); change this in __init__
 		R_leg_tip_x = self.smooth(self.DLC_data[:, 22], window_T=smoothing_dt)
 		L_leg_tip_x = self.smooth(self.DLC_data[:, 1], window_T=smoothing_dt)
-		posture_list = [R_leg_tip_x, L_leg_tip_x]
 		
+		# Need y's for each posture
+		R_leg_tip_y = self.smooth(self.DLC_data[:, 23], window_T=smoothing_dt)
+		L_leg_tip_y = self.smooth(self.DLC_data[:, 2], window_T=smoothing_dt)
+		
+		posture_xlist = [R_leg_tip_x, L_leg_tip_x]
+		posture_ylist = [R_leg_tip_y, L_leg_tip_y]
+		
+		# Wall and laser positions
 		L_wall_pos = self.pos_arr[0, lane]
 		laser_pos = self.pos_arr[1, lane]
 		R_wall_pos = self.pos_arr[2, lane]
 		
-		
+		# Get number of touches and x,y positions for each ROI, for wall/laser
 		fig = plt.figure()
 		fig.set_size_inches(8, 4)
-		for iP, arr in enumerate(posture_list):
+		for iP, arr in enumerate(posture_xlist):
+			
+			posture_x = posture_xlist[iP]
+			posture_y = posture_ylist[iP]
 			
 			# Left wall approach
 			for iS in range(len(self.wall_L_splits)):
 				iRange = self.wall_L_splits[iS]
+				if iRange[-1] > len(arr) - 1:
+					continue
 				hits = detect_peaks(arr[iRange], mpd=mpd, mph=-1e3, valley=1)
-				
-				# Add number of hits
 				num_hits = 0
 				for idx in hits:
 					if abs(arr[idx + iRange[0]] - L_wall_pos) < dw:
 						num_hits += 1
-						Tt = 1.*(idx + iRange[0])/self.fps
-						plt.scatter(Tt, arr[idx + iRange[0]]*self.mm_per_px, c='r')
+						frame = idx + iRange[0]
+						self.wall_xs[iP].append(posture_x[frame]/self.fps)
+						self.wall_ys[iP].append(posture_y[frame]/self.fps)
+						plt.scatter(1.*frame/self.fps, 
+									posture_x[frame]*self.mm_per_px, c='r')
 				self.num_wall_hits[iP].append(num_hits)
 			
-			# Right wall approach (hits)
+			# Right wall approach 
 			for iS in range(len(self.wall_R_splits)):
 				iRange = self.wall_R_splits[iS]
+				if iRange[-1] > len(arr) - 1:
+					continue
 				hits = detect_peaks(arr[iRange], mpd=mpd, mph=R_wall_pos - dw)
 				num_hits = 0
 				for idx in hits:
 					if abs(arr[idx + iRange[0]] - R_wall_pos) < dw:
 						num_hits += 1
-						Tt = 1.*(idx + iRange[0])/self.fps
-						plt.scatter(Tt, arr[idx + iRange[0]]*self.mm_per_px, c='r')
+						frame = idx + iRange[0]
+						self.wall_xs[iP].append(posture_x[frame]/self.fps)
+						self.wall_ys[iP].append(posture_y[frame]/self.fps)
+						plt.scatter(1.*frame/self.fps, 
+									posture_x[frame]*self.mm_per_px, c='r')
 				self.num_wall_hits[iP].append(num_hits)
 			
 			# Left laser approach			
 			for iS in range(len(self.laser_L_splits)):
 				iRange = self.laser_L_splits[iS]
+				if iRange[-1] > len(arr) - 1:
+					continue
 				hits = detect_peaks(arr[iRange], mpd=mpd, mph=laser_pos - dw)
 				num_hits = 0
 				for idx in hits:
 					if abs(arr[idx + iRange[0]] - laser_pos) < dw:
 						num_hits += 1
-						Tt = 1.*(idx + iRange[0])/self.fps
-						plt.scatter(Tt, arr[idx + iRange[0]]*self.mm_per_px, c='b')
+						frame = idx + iRange[0]
+						self.laser_xs[iP].append(posture_x[frame]/self.fps)
+						self.laser_ys[iP].append(posture_y[frame]/self.fps)
+						plt.scatter(1.*frame/self.fps, 
+									posture_x[frame]*self.mm_per_px, c='b')
 				self.num_laser_hits[iP].append(num_hits)
 					
 			# Right laser approach
 			for iS in range(len(self.laser_R_splits)):
 				iRange = self.laser_R_splits[iS]
+				if iRange[-1] > len(arr) - 1:
+					continue
 				hits = detect_peaks(arr[iRange], mpd=mpd, mph=-1e3, valley=1)
 				num_hits = 0
 				for idx in hits:
 					if abs(arr[idx + iRange[0]] - laser_pos) < dw:
 						num_hits += 1
-						Tt = 1.*(idx + iRange[0])/self.fps
-						plt.scatter(Tt, arr[idx + iRange[0]]*self.mm_per_px, c='b')
+						frame = idx + iRange[0]
+						self.laser_xs[iP].append(posture_x[frame]/self.fps)
+						self.laser_ys[iP].append(posture_y[frame]/self.fps)
+						plt.scatter(1.*frame/self.fps, 
+									posture_x[frame]*self.mm_per_px, c='b')
 				self.num_laser_hits[iP].append(num_hits)
+			
+			# Plot the full trace and save to check by eye
 			plt.plot(sp.arange(self.DLC_data.shape[0])/self.fps, 
 						arr*self.mm_per_px, c='k')	
 			plt.axhline(laser_pos*self.mm_per_px, linestyle='--')
 			plt.axhline(L_wall_pos*self.mm_per_px, linestyle='--')
 			plt.axhline(R_wall_pos*self.mm_per_px, linestyle='--')
-			self.save_touches(dir, lane, posture_names[iP])
-			
-			
+			self.save_touches(dir, lane, self.posture_names[iP])
+	
+	def get_num_touches_per_ROI(self, in_dir, genotype):
+		"""
+		Plot the number of touches per ROI, average and sem.
+		"""
+		
+		
+		fig = plt.figure()
+		fig.set_size_inches(2, 4.0)
+		for iP in range(self.num_postures):
+			avg = sp.average(self.num_wall_hits[iP])
+			sem = sp.std(self.num_wall_hits[iP])/\
+							len(self.num_wall_hits[iP])**0.5
+			plt.errorbar(iP/2.0, avg, sem, color=plt.cm.Blues(0.4 + 
+							iP/(self.num_postures)), lw = 3, capsize=4)
+			avg = sp.average(self.num_laser_hits[iP])
+			sem = sp.std(self.num_laser_hits[iP])/\
+							len(self.num_laser_hits[iP])**0.5
+			plt.errorbar(1 + iP/2.0, avg, sem, color=plt.cm.Reds(0.4
+							+ iP/(self.num_postures)), capsize=4, lw=3)
+		plt.xticks([0, 0.5, 1, 1.5], ['Right leg wall', 'Left leg wall', 
+					'Left leg laser', 'Right leg laser'], rotation=90)
+		plt.ylim(0, 3)
+		plots_dir = os.path.join(in_dir, '_postures')
+		filename = os.path.join(plots_dir, '_num_touches', '%s.svg' % genotype)
+		plt.tight_layout()
+		plt.savefig(filename)
+		filename = os.path.join(plots_dir, '_num_touches', '%s.png' % genotype)
+		plt.savefig(filename)
+		plt.close()
+		
+		
 def main(in_dir, genotype=None, mm_per_px=3./106, fps=60, num_slots=4):
 	
 	a = postures(genotype, mm_per_px, fps, num_slots)
 	for genotype in a.genotypes:
 		a.get_all_dirs(in_dir, genotype)
+		
 		if len(a.dirs_to_analyze) == 0:
 			print ('Nothing loaded for genotype %s' % genotype)
 			continue
 		
 		# This is a list, each entry of which is the number of hits in ROI
-		a.num_laser_hits = [[] for i in range(2)]
-		a.num_wall_hits = [[] for i in range(2)]
+		a.num_laser_hits = [[] for i in range(a.num_postures)]
+		a.num_wall_hits = [[] for i in range(a.num_postures)]
+		a.wall_xs = [[] for i in range(a.num_postures)]
+		a.wall_ys = [[] for i in range(a.num_postures)]
+		a.laser_xs = [[] for i in range(a.num_postures)]
+		a.laser_ys = [[] for i in range(a.num_postures)]
 		
 		# For each dir of genotype, load laser pos, DLC data, frame/orient data
 		for dir in a.dirs_to_analyze:
+			
+			print (dir)
 			a.load_laser_wall_pos(dir)
 			
 			# For each slot, different file; load sequentially
@@ -349,15 +419,18 @@ def main(in_dir, genotype=None, mm_per_px=3./106, fps=60, num_slots=4):
 				try:
 					a.load_DLC(dir, iL)
 				except FileNotFoundError:
-					print ('%s_lane_%s_topbyroi.csv not found' % (iL, dir))
+					print ('%s_lane_%s_topbyroi.csv not found' % (dir, iL))
 					continue
 				try:
 					a.load_frame_ROI(dir, iL)
 				except FileNotFoundError:
-					print ('lane_%s_topbyroi.txt not found' % dir)
+					print ('%s_lane_%s_topbyroi.txt not found' % (dir, iL))
 					continue
 				a.get_frame_ranges()
 				a.get_touches(dir, iL)
-				
+		
+		a.get_num_touches_per_ROI(in_dir, genotype)
+		
+		
 if __name__ == '__main__':
 	argh.dispatch_command(main)

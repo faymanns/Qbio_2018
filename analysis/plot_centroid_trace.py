@@ -62,7 +62,7 @@ class centroid(object):
 			analysis directory.
 		
 		"""
-	
+		
 		all_dirs = next(os.walk(in_dir))[1]
 		self.dirs_to_analyze = []
 		for dir in all_dirs:
@@ -74,6 +74,7 @@ class centroid(object):
 			if genotype_exists == True:
 				full_dir = os.path.join(in_dir, dir)
 				self.dirs_to_analyze.append(full_dir)
+		
 		assert len(self.dirs_to_analyze) != 0, 'No dirs loaded; check in_dir.'
 	
 	def load_laser_wall_pos(self, in_dir):
@@ -168,18 +169,24 @@ class centroid(object):
 			fig = plt.figure()
 			fig.set_size_inches(15, 3)
 			plt.xlim(-2, 302)
-			plt.ylim(0, 800)
+			plt.ylim(0, 850)
 			plt.xticks([])
 			plt.yticks([])
 			
 			smoothed_data = self.smooth(self.data[:, iS])
 			plt.scatter(self.Tt, smoothed_data, s=1, color='k')
-			plt.axhline(y = self.pos_arr[1, iS], color='r', lw=3)
+			plt.axhline(y = self.pos_arr[0, iS], color='r', lw=2, ls='--')
+			plt.axhline(y = self.pos_arr[1, iS], color='r', lw=2, ls='--')
+			plt.axhline(y = self.pos_arr[2, iS], color='r', lw=2, ls='--')
 			
-			filename = os.path.join(base_dir, '_tracks', 
+			out_dir = os.path.join(base_dir, '_centroid/_tracks', )
+			if not os.path.isdir(out_dir):
+				os.mkdir(out_dir)
+			filename = os.path.join(base_dir, '_centroid/_tracks', 
 									'%s_track=%s.png' % (exp_dir, iS))
 			plt.tight_layout()
 			plt.savefig(filename)
+			plt.close()
 			
 			
 def main(in_dir, mm_per_px=3./106, fps=60, num_slots=4):
