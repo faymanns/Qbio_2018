@@ -260,12 +260,12 @@ class postures(object):
 		dw = int(dwall/self.mm_per_px)
 		
 		# Two postures to track (left and right leg); change this in __init__
-		R_leg_tip_x = self.smooth(self.DLC_data[:, 22], window_T=smoothing_dt)
-		L_leg_tip_x = self.smooth(self.DLC_data[:, 1], window_T=smoothing_dt)
+		R_leg_tip_x = self.smooth(self.DLC_data[:, 1], window_T=smoothing_dt)
+		L_leg_tip_x = self.smooth(self.DLC_data[:, 22], window_T=smoothing_dt)
 		
 		# Need y's for each posture
-		R_leg_tip_y = self.smooth(self.DLC_data[:, 23], window_T=smoothing_dt)
-		L_leg_tip_y = self.smooth(self.DLC_data[:, 2], window_T=smoothing_dt)
+		R_leg_tip_y = self.smooth(self.DLC_data[:, 2], window_T=smoothing_dt)
+		L_leg_tip_y = self.smooth(self.DLC_data[:, 23], window_T=smoothing_dt)
 		
 		posture_xlist = [R_leg_tip_x, L_leg_tip_x]
 		posture_ylist = [R_leg_tip_y, L_leg_tip_y]
@@ -386,8 +386,8 @@ class postures(object):
 							len(self.num_laser_hits[iP])**0.5
 			plt.errorbar(1 + iP/2.0, avg, sem, color=plt.cm.Reds(0.4
 							+ iP/(self.num_postures)), capsize=4, lw=3)
-		plt.xticks([0, 0.5, 1, 1.5], ['Right leg wall', 'Left leg wall', 
-					'Left leg laser', 'Right leg laser'], rotation=90)
+		plt.xticks([0, 0.5, 1, 1.5], ['R foreleg', 'L foreleg', 
+					'R foreleg', 'L foreleg'], rotation=90)
 		plt.ylim(0, 3)
 		plots_dir = os.path.join(in_dir, '_postures')
 		filename = os.path.join(plots_dir, '_num_touches', '%s.svg' % genotype)
